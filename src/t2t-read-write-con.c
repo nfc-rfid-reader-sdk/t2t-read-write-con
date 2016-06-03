@@ -2,7 +2,7 @@
  ============================================================================
  Name        : t2t-read-write-con.c
  Author      : www.d-logic.net
- Version     : 1.0
+ Version     : 1.1
  Description : t2t-read-write console example in C
  Dependency  : uFCoder-x86.dll, min. ver. 3.7.3 for NTAG203, UL, UL C
  Dependency  : uFCoder-x86.dll, min. ver. 3.8.5 for NTAG21x, UL EV1, MIK640D
@@ -10,7 +10,7 @@
  ============================================================================
  */
 
-#define STR_APP_VERSION "1.0"
+#define STR_APP_VERSION "1.1"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,7 +32,7 @@ void print_ln_len(char symbol, uint8_t cnt);
 void print_ln(char symbol);
 void print_hex(const uint8_t *data, uint32_t len, const char *delimiter);
 void print_hex_ln(const uint8_t *data, uint32_t len, const char *delimiter);
-chr_ptr GetDlTypeName(uint8_t dl_type_code);
+char *GetDlTypeName(uint8_t dl_type_code);
 //------------------------------------------------------------------------------
 int main(void) {
 #define CONTENT_BUFF_LEN	2048
@@ -466,7 +466,10 @@ int main(void) {
 			loop = 0;
 			break;
 
-		default:
+		case 'H':
+		case 'h':
+		case 'U':
+		case 'u':
 			usage();
 			break;
 		}
@@ -498,11 +501,11 @@ void usage(void) {
 			"  [V] Increase counter.\n"
 
 			"[esc] Close device and exit program.\n"
-			"  [H] (or any unused key) This help screen.\n");
+			"[H,U] This help screen.\n");
 	print_ln('=');
 }
 //------------------------------------------------------------------------------
-chr_ptr GetDlTypeName(uint8_t dl_type_code) {
+char *GetDlTypeName(uint8_t dl_type_code) {
 	static char s[50];
 
 	switch (dl_type_code) {
