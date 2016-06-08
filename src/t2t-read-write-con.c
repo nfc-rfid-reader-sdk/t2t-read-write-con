@@ -4,13 +4,15 @@
  Author      : www.d-logic.net
  Version     : 1.1
  Description : t2t-read-write console example in C
- Dependency  : uFCoder-x86.dll, min. ver. 3.7.3 for NTAG203, UL, UL C
- Dependency  : uFCoder-x86.dll, min. ver. 3.8.5 for NTAG21x, UL EV1, MIK640D
+ Dependency  : uFCoder library, min. ver. 3.7.3 for NTAG203, UL, UL C
+ Dependency  : uFCoder library, min. ver. 3.8.5 for NTAG21x, UL EV1, MIK640D
  Dependency  : uFR firmware from ver. 3.9.10 for PWD/PACK T2T authentication.
+ Dependency  : uFCoder library, min. ver. 4.0.3 for NTAG & UL EV1 Counters
+ Dependency  : uFR firmware from ver. 3.9.11 for NTAG & UL EV1 Counters
  ============================================================================
  */
 
-#define STR_APP_VERSION "1.1"
+#define STR_APP_VERSION "1.2"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,7 +42,7 @@ int main(void) {
 #define STR_BUFF_LEN1(x)	#x
 	UFR_STATUS status;
 	int loop = 1;
-	int nitems, page, len;
+	int input_val, nitems, page, len;
 	uint16_t actual;
 	uint32_t bytes_4;
 	uint8_t page_content[CONTENT_BUFF_LEN];
@@ -377,7 +379,8 @@ int main(void) {
 			case DL_MIFARE_ULTRALIGHT_EV1_11:
 			case DL_MIFARE_ULTRALIGHT_EV1_21:
 				printf("Card features three independent 24-bit one-way counters.\n"
-						"This kind of counters are not yet supported by the uFR Readers.\n");
+						"This kind of counters are supported in firmware from version 3.9.11\n"
+						"and in uFCoder library from version 4.0.3.\n");
 				break;
 			case DL_NTAG_213:
 			case DL_NTAG_215:
@@ -385,7 +388,8 @@ int main(void) {
 				printf("Tag features a NFC counter function. This function enables tag to\n"
 						"automatically increase the 24 bit counter value, triggered by the\n"
 						"first valid READ or FAST-READ command.\n"
-						"This kind of counter are not yet supported by the uFR Readers.\n");
+						"This kind of counter is supported in firmware from version 3.9.11\n"
+						"and in uFCoder library from version 4.0.3.\n");
 				break;
 			case TAG_UNKNOWN:
 				break;
@@ -407,8 +411,43 @@ int main(void) {
 			case DL_MIFARE_ULTRALIGHT_C:
 			case DL_NTAG_203:
 				status = BlockRead((void *)&counter_val, 41, T2T_WITHOUT_PWD_AUTH, 0);
+				if (status != UFR_OK) {
+					printf("Error, status is: 0x%08X\n", status);
+					break;
+				}
 				counter_val &= 0xFFFF;
 				printf("Counter page read operation successful\nCounter value is: %d\n", counter_val);
+				break;
+			case DL_MIFARE_ULTRALIGHT_EV1_11:
+			case DL_MIFARE_ULTRALIGHT_EV1_21:
+				printf("    Enter counter address (0, 1 or 2): ");
+				nitems = scanf("%d", &page);
+				fflush(stdin);
+				if ((nitems == EOF) || (nitems == 0)) {
+					printf("\nInput error.\n");
+					break;
+				}
+				if ((page < 0) || (page > 2)) {
+					printf("\nAddress out of range.\n");
+					break;
+				}
+
+				status = ReadCounter(page, (void *)&counter_val);
+				if (status != UFR_OK) {
+					printf("Error, status is: 0x%08X\n", status);
+					break;
+				}
+				printf("Read Counter operation successful\nCounter value is: %d\n", counter_val);
+				break;
+			case DL_NTAG_213:
+			case DL_NTAG_215:
+			case DL_NTAG_216:
+				status = ReadCounter(2, (void *)&counter_val);
+				if (status == UFR_OK) {
+					printf("Read Counter operation successful\nCounter value is: %d\n", counter_val);
+				} else {
+					printf("Error, status is: 0x%08X\n", status);
+				}
 				break;
 			default:
 				printf("Card in field not supported for counter operations.\n");
@@ -450,8 +489,42 @@ int main(void) {
 					printf("Error, status is: 0x%08X\n", status);
 				}
 				break;
+			case DL_MIFARE_ULTRALIGHT_EV1_11:
+			case DL_MIFARE_ULTRALIGHT_EV1_21:
+				printf("    Enter counter address (0, 1 or 2): ");
+				nitems = scanf("%d", &page);
+				fflush(stdin);
+				if ((nitems == EOF) || (nitems == 0)) {
+					printf("\nInput error.\n");
+					break;
+				}
+				if ((page < 0) || (page > 2)) {
+					printf("\nAddress out of range.\n");
+					break;
+				}
+
+				printf("    Enter increment value: ");
+				nitems = scanf("%d", &input_val);
+				fflush(stdin);
+				if ((nitems == EOF) || (nitems == 0)) {
+					printf("\nInput error.\n");
+					break;
+				}
+				if ((input_val < 0) || (input_val > 0xFFFFFF)) {
+					printf("\nIncrement value out of range.\n");
+					break;
+				}
+				counter_val = (uint32_t) input_val;
+
+				status = IncrementCounter(page, counter_val);
+				if (status == UFR_OK) {
+					printf("Increase Counter operation successful.\n");
+				} else {
+					printf("Error, status is: 0x%08X\n", status);
+				}
+				break;
 			default:
-				printf("Card in field not supported for counter operations.\n");
+				printf("Card in field not supported for explicit counter increment operation.\n");
 				break;
 			}
 			print_ln('=');
