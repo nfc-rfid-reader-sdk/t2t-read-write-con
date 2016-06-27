@@ -279,14 +279,14 @@ int main(void) {
 				break;
 			case T2T_RKA_PWD_AUTH:
 				status = LinearRead(page_content, (uint16_t) page,
-						(uint16_t) len, &actual, T2T_WITHOUT_PWD_AUTH,
+						(uint16_t) len, &actual, T2T_WITH_PWD_AUTH,
 						getPwdPackReaderIdx());
 				break;
 			case T2T_PK_PWD_AUTH:
 				memcpy(pwd_pack_key, getPwd(), 4);
 				memcpy(&pwd_pack_key[4], getPack(), 2);
 				status = LinearRead_PK(page_content, (uint16_t) page,
-						(uint16_t) len, &actual, T2T_WITHOUT_PWD_AUTH,
+						(uint16_t) len, &actual, T2T_WITH_PWD_AUTH,
 						pwd_pack_key);
 				break;
 			}
@@ -336,14 +336,14 @@ int main(void) {
 				break;
 			case T2T_RKA_PWD_AUTH:
 				status = LinearWrite(page_content, (uint16_t) page,
-						(uint16_t) len, &actual, T2T_WITHOUT_PWD_AUTH,
+						(uint16_t) len, &actual, T2T_WITH_PWD_AUTH,
 						getPwdPackReaderIdx());
 				break;
 			case T2T_PK_PWD_AUTH:
 				memcpy(pwd_pack_key, getPwd(), 4);
 				memcpy(&pwd_pack_key[4], getPack(), 2);
 				status = LinearWrite_PK(page_content, (uint16_t) page,
-						(uint16_t) len, &actual, T2T_WITHOUT_PWD_AUTH,
+						(uint16_t) len, &actual, T2T_WITH_PWD_AUTH,
 						pwd_pack_key);
 				break;
 			}
@@ -357,7 +357,7 @@ int main(void) {
 			print_ln('=');
 			break;
 			//..................................................................
-		case 'B': // Linear Write
+		case 'B': // Show counter capabilities
 		case 'b':
 			status = GetDlogicCardType(&dl_card_type);
 			if (status != UFR_OK) {
@@ -442,7 +442,20 @@ int main(void) {
 			case DL_NTAG_213:
 			case DL_NTAG_215:
 			case DL_NTAG_216:
-				status = ReadCounter(2, (void *)&counter_val);
+				switch (getAuthMode()) {
+				case T2T_NO_PWD_AUTH:
+					status = ReadNFCCounter((void *)&counter_val);
+					break;
+				case T2T_RKA_PWD_AUTH:
+					status = ReadNFCCounterPwdAuth_RK((void *)&counter_val, getPwdPackReaderIdx());
+					break;
+				case T2T_PK_PWD_AUTH:
+					memcpy(pwd_pack_key, getPwd(), 4);
+					memcpy(&pwd_pack_key[4], getPack(), 2);
+					status = ReadNFCCounterPwdAuth_PK((void *)&counter_val, pwd_pack_key);
+					break;
+				}
+
 				if (status == UFR_OK) {
 					printf("Read Counter operation successful\nCounter value is: %d\n", counter_val);
 				} else {
@@ -523,8 +536,15 @@ int main(void) {
 					printf("Error, status is: 0x%08X\n", status);
 				}
 				break;
+			case DL_NTAG_213:
+			case DL_NTAG_215:
+			case DL_NTAG_216:
+				printf("Card in the field have NFC counter which is incremented with each\n"
+						"valid read operation. NFC counter functionality have to be enabled\n"
+						"by setting NFC_CNT_EN bit in the ACCESS configuration byte.\n");
+				break;
 			default:
-				printf("Card in field not supported for explicit counter increment operation.\n");
+				printf("Card in field not supported for counter increment operation.\n");
 				break;
 			}
 			print_ln('=');
